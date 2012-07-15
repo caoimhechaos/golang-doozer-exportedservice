@@ -9,8 +9,8 @@ exportedservice = env.Go('exportedservice', ["exportedport.go",
 pack = env.GoPack('exportedservice', exportedservice)
 
 env.Install(env['DESTDIR'] + env['GO_PKGROOT'] +
-	    '/ancientsolutions.com/doozer/exportedservice', pack)
+	    '/ancientsolutions.com/doozer', pack)
 env.Alias('install', [env['DESTDIR'] + env['GO_PKGROOT'] +
-	  '/ancientsolutions.com/doozer/exportedservice'])
+	  '/ancientsolutions.com/doozer'])
 
 opts.Save('options.conf', env)
