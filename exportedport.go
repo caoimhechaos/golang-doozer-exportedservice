@@ -61,7 +61,7 @@ func NewExportedPort(network, ip, servicename string) (net.Listener, error) {
  * "servicename". Associate the TLS configuration "config". If "ip" is
  * a host:port pair, the port will be overridden.
  */
-func NewExportedPort(network, ip, servicename string,
+func NewExportedTLSPort(network, ip, servicename string,
 	config *tls.Config) (net.Listener, error) {
 	var l net.Listener
 	var err error
@@ -73,5 +73,5 @@ func NewExportedPort(network, ip, servicename string,
 	}
 
 	// ... and inject a TLS context.
-	return tls.NewListener(l, config)
+	return tls.NewListener(l, config), nil
 }
