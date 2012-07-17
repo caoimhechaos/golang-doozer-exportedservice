@@ -13,13 +13,13 @@ import (
  * Make the default HTTP server listen on "addr" and export the given
  * "handler". Register as "servicename".
  */
-func ListenAndServeNamedHTTP(servicename, addr string,
-			     handler http.Handler) error {
+func (self *ServiceExporter) ListenAndServeNamedHTTP(
+	servicename, addr string, handler http.Handler) error {
 	var l net.Listener
 	var err error
 
 	// We can just create a new port as above...
-	l, err = NewExportedPort("tcp", addr, servicename)
+	l, err = self.NewExportedPort("tcp", addr, servicename)
 	if err != nil {
 		return err
 	}

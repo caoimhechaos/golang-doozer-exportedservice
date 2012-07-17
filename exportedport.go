@@ -12,13 +12,36 @@ import (
 	"net"
 )
 
+// We need to initialize our Doozer client beforehand and keep it somewhere.
+type ServiceExporter struct {
+	conn *doozer.Conn
+	uri string
+	buri string
+}
+
+/**
+ * Try to create a new exporter by connecting to Doozer.
+ */
+func NewExporter(uri, buri string) (*ServiceExporter, error) {
+	var self *ServiceExporter = &ServiceExporter{}
+	var err error
+
+	self.conn, err = doozer.DialUri(uri, buri)
+
+	// We couldn't connect, let our user know.
+	if err != nil {
+		return nil, err
+	}
+	return self, nil
+}
+
 /**
  * Open a new anonymous port on "ip" and export it through Doozer as
  * "servicename". If "ip" is a host:port pair, the port will be overridden.
  */
-func NewExportedPort(network, ip, servicename string) (net.Listener, error) {
+func (self *ServiceExporter) NewExportedPort(
+	network, ip, servicename string) (net.Listener, error) {
 	var host, hostport string
-	var conn *doozer.Conn
 	var l net.Listener
 	var err error
 	var i uint
@@ -35,19 +58,20 @@ func NewExportedPort(network, ip, servicename string) (net.Listener, error) {
 
 	// Now write our host:port pair to Doozer. First, determine the next
 	// free number.
-	conn, err = doozer.Dial("doozer.l.internetputzen.com:8046")
-	if err != nil {
-		l.Close()
-		return nil, err
-	}
-
 	// FIXME(tonnerre): Turn this into a more efficient implementation.
 	for {
 		var path string = fmt.Sprintf("/ns/service/%s/%d",
 			servicename, i)
-		_, err = conn.Set(path, 0, []byte(l.Addr().String()))
+		var ok bool
+		var derr *doozer.Error
+		_, err = self.conn.Set(path, 0, []byte(l.Addr().String()))
 		if err == nil {
 			return l, nil
+		}
+
+		if derr, ok = err.(*doozer.Error); !ok ||
+			derr.Err != doozer.ErrOldRev {
+			return nil, err
 		}
 
 		i += 1
@@ -60,13 +84,14 @@ func NewExportedPort(network, ip, servicename string) (net.Listener, error) {
  * "servicename". Associate the TLS configuration "config". If "ip" is
  * a host:port pair, the port will be overridden.
  */
-func NewExportedTLSPort(network, ip, servicename string,
-		        config *tls.Config) (net.Listener, error) {
+func (self *ServiceExporter) NewExportedTLSPort(
+	network, ip, servicename string,
+	config *tls.Config) (net.Listener, error) {
 	var l net.Listener
 	var err error
 
 	// We can just create a new port as above...
-	l, err = NewExportedPort(network, ip, servicename)
+	l, err = self.NewExportedPort(network, ip, servicename)
 	if err != nil {
 		return nil, err
 	}
