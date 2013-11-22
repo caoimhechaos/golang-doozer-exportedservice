@@ -15,9 +15,11 @@ import (
 
 // We need to initialize our Doozer client beforehand and keep it somewhere.
 type ServiceExporter struct {
-	conn *doozer.Conn
-	uri  string
-	buri string
+	conn    *doozer.Conn
+	path    string
+	pathrev int64
+	uri     string
+	buri    string
 }
 
 /**
@@ -61,12 +63,15 @@ func (self *ServiceExporter) NewExportedPort(
 	// free number.
 	// FIXME(caoimhe): Turn this into a more efficient implementation.
 	for {
-		var path string = fmt.Sprintf("/ns/service/%s/%d",
-			servicename, i)
+		var path string = fmt.Sprintf("/ns/service/%s/%d", servicename, i)
 		var ok bool
 		var derr *doozer.Error
-		_, err = self.conn.Set(path, 0, []byte(l.Addr().String()))
+		var rev int64
+
+		rev, err = self.conn.Set(path, 0, []byte(l.Addr().String()))
 		if err == nil {
+			self.path = path
+			self.pathrev = rev
 			return l, nil
 		}
 
@@ -99,4 +104,23 @@ func (self *ServiceExporter) NewExportedTLSPort(
 
 	// ... and inject a TLS context.
 	return tls.NewListener(l, config), nil
+}
+
+/**
+ * Remove the associated exported port. This will only delete the most
+ * recently exported port.
+ */
+func (self *ServiceExporter) UnexportPort() error {
+	var derr *doozer.Error
+	var err error
+	var ok bool
+
+	if err = self.conn.Del(self.path, self.pathrev); err != nil {
+		if derr, ok = err.(*doozer.Error); !ok ||
+			derr.Err != doozer.ErrOldRev {
+			return err
+		}
+	}
+
+	return nil
 }
