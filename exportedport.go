@@ -115,6 +115,10 @@ func (self *ServiceExporter) UnexportPort() error {
 	var err error
 	var ok bool
 
+	if len(self.path) == 0 {
+		return nil
+	}
+
 	if err = self.conn.Del(self.path, self.pathrev); err != nil {
 		if derr, ok = err.(*doozer.Error); !ok ||
 			derr.Err != doozer.ErrOldRev {
