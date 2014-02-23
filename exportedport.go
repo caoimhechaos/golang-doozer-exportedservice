@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/4ad/doozer"
+	"github.com/ha/doozer"
 )
 
 // We need to initialize our Doozer client beforehand and keep it somewhere.
